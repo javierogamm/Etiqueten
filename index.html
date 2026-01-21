@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Etiqueten · Importación y etiquetas Apli 01213</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">APP local · Importación secuencial</p>
+          <h1>Etiqueten</h1>
+          <p class="lead">
+            Importa dos CSV, filtra por NIF y genera un documento compatible con Word para imprimir etiquetas Apli 01213.
+          </p>
+        </div>
+        <div class="version">Versión <span id="appVersion">0.1.0</span></div>
+      </header>
+
+      <section class="card" aria-labelledby="step-1">
+        <div class="card-header">
+          <span class="step">1</span>
+          <div>
+            <h2 id="step-1">Descarga del CSV1 (NIF válidos)</h2>
+            <p>
+              Instrucciones: Accede a la URL, filtra los usuarios, exporta el CSV y dámelo.
+            </p>
+          </div>
+        </div>
+        <div class="card-body">
+          <a class="link" href="https://gestiona-02.espublico.com/analiza-int/pool-02/sense/app/c1e2e9c8-75aa-4900-8ca2-9ec24a23ef44/sheet/80a0b647-06c9-46b4-8263-c0eeefb29dc9/state/analysis" target="_blank" rel="noreferrer">
+            Abrir URL de origen (CSV1)
+          </a>
+          <label class="file">
+            <span>Selecciona el CSV1</span>
+            <input type="file" id="csv1" accept=".csv" />
+          </label>
+          <p class="hint" id="csv1Status">Sin archivo cargado.</p>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="step-2">
+        <div class="card-header">
+          <span class="step">2</span>
+          <div>
+            <h2 id="step-2">Descarga del CSV2 (NIF existentes)</h2>
+            <p>
+              Instrucciones: Accede a la URL, descarga el CSV y dámelo.
+            </p>
+          </div>
+        </div>
+        <div class="card-body">
+          <a class="link" href="https://gestiona-02.espublico.com/analiza-int/pool-02/sense/app/daacee2e-4442-4d96-b579-7bea9f6d65a2/sheet/LHCxAx/state/analysis" target="_blank" rel="noreferrer">
+            Abrir URL de origen (CSV2)
+          </a>
+          <label class="file">
+            <span>Selecciona el CSV2</span>
+            <input type="file" id="csv2" accept=".csv" />
+          </label>
+          <p class="hint" id="csv2Status">Sin archivo cargado.</p>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="step-3">
+        <div class="card-header">
+          <span class="step">3</span>
+          <div>
+            <h2 id="step-3">Filtrado por NIF</h2>
+            <p>
+              Revisa los datos detectados y genera la lista de coincidencias entre ambos CSV.
+            </p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="grid">
+            <div class="panel">
+              <h3>Resumen CSV1</h3>
+              <ul class="summary" id="csv1Summary">
+                <li>Filas: —</li>
+                <li>Columna NIF: —</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Resumen CSV2</h3>
+              <ul class="summary" id="csv2Summary">
+                <li>Filas: —</li>
+                <li>Columna NIF: —</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Resultado</h3>
+              <ul class="summary" id="resultSummary">
+                <li>Coincidencias: —</li>
+                <li>Columnas disponibles: —</li>
+              </ul>
+            </div>
+          </div>
+          <button class="primary" id="filterBtn" disabled>Filtrar y preparar etiquetas</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="step-4">
+        <div class="card-header">
+          <span class="step">4</span>
+          <div>
+            <h2 id="step-4">Documento Word para imprimir</h2>
+            <p>
+              Descarga un documento .doc con maquetado compatible para imprimir etiquetas Apli 01213.
+            </p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="actions">
+            <button class="secondary" id="downloadDoc" disabled>Descargar documento Word</button>
+            <button class="ghost" id="previewBtn" disabled>Previsualizar etiquetas</button>
+          </div>
+          <div class="hint">
+            La maquetación usa A4 y etiquetas de 63,5 × 38,1 mm (Apli 01213). Ajusta la escala de impresión si fuese necesario.
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="preview" id="previewSection" hidden>
+        <div class="card-header">
+          <span class="step">Vista previa</span>
+          <div>
+            <h2 id="preview">Etiquetas generadas</h2>
+            <p>Comprueba cómo quedarán las etiquetas antes de imprimir.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="labelsPreview" class="labels-preview"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">Hecho para ejecución local · HTML + JS</footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
