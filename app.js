@@ -18,7 +18,7 @@ const state = {
   headers: [],
 };
 
-const appVersion = "0.1.0";
+const appVersion = "0.1.1";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
@@ -218,19 +218,19 @@ const buildWordDocument = (headers, rows) => {
   <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
     <head>
       <meta charset="utf-8">
-      <title>Etiquetas Apli 01213</title>
+      <title>Etiquetas Apli 01273</title>
       <style>
-        @page { size: A4; margin: 8mm; }
-        body { font-family: Arial, sans-serif; font-size: 10pt; }
+        @page { size: A4; margin: 0mm; }
+        body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; }
         .label-grid {
           display: grid;
-          grid-template-columns: repeat(3, 63.5mm);
-          grid-auto-rows: 38.1mm;
-          gap: 2mm;
+          grid-template-columns: repeat(3, 70mm);
+          grid-auto-rows: 37mm;
+          gap: 0;
         }
         .label {
           border: 0.2mm solid #999;
-          padding: 4mm 3mm;
+          padding: 3mm 3mm;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
@@ -273,7 +273,7 @@ downloadBtn.addEventListener("click", () => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "etiquetas-apli-01213.doc";
+  link.download = "etiquetas-apli-01273.doc";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

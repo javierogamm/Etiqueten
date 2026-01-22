@@ -206,9 +206,9 @@ button:not(:disabled):hover {
 
 .labels-preview .label-grid {
   display: grid;
-  grid-template-columns: repeat(3, 63.5mm);
-  grid-auto-rows: 38.1mm;
-  gap: 2mm;
+  grid-template-columns: repeat(3, 70mm);
+  grid-auto-rows: 37mm;
+  gap: 0;
 }
 
 .labels-preview .label {
