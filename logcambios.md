@@ -36,3 +36,8 @@
 - Ajustado el HTML de etiquetas para respetar márgenes, alto de fila, ancho de columnas y sangrías del DOCX de referencia.
 - Añadido botón para exportar a PDF con la misma maqueta de impresión que el Word.
 - Actualizada la versión visible de la app.
+
+## 0.4.4
+- Igualadas las medidas APLI 01273 (márgenes, tabla y celdas) con el HTML de referencia para Word/PDF.
+- Eliminados los anchos irregulares, el colgroup y el margin-left negativo en la tabla de etiquetas.
+- Actualizada la versión visible de la app.
