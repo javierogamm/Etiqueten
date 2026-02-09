@@ -30,7 +30,7 @@ const state = {
   labelFields: null,
 };
 
-const appVersion = "0.4.4";
+const appVersion = "0.4.5";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
@@ -398,46 +398,131 @@ const buildLabelTable = (rows, fields) => {
   return tables;
 };
 
-const buildWordDocument = (rows, fields) => {
-  const tables = buildLabelTable(rows, fields);
-  return `
-  <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-      <meta charset="utf-8">
-      <title>Etiquetas alumnos</title>
-      <style>
-        /* Medidas APLI 01273 tomadas de ejemplos/Resultado app.htm */
-        @page { size: 21.0cm 29.7cm; margin: ${PAGE_MARGIN_TOP_BOTTOM_PT}pt ${PAGE_MARGIN_SIDE_CM}cm ${PAGE_MARGIN_TOP_BOTTOM_PT}pt ${PAGE_MARGIN_SIDE_CM}cm; }
-        body { font-family: Arial, sans-serif; font-size: ${LABEL_FONT_SIZE_PT}pt; margin: 0; }
-        .labels-table {
-          border-collapse: collapse;
-          table-layout: fixed;
-          width: ${LABEL_TABLE_WIDTH_CM}cm;
+const cmToTwip = (value) => Math.round(value * 566.9291338583);
+const ptToTwip = (value) => Math.round(value * 20);
+
+const buildDocxDocument = (rows, fields) => {
+  if (!window.docx) {
+    throw new Error("No se encontró la librería DOCX.");
+  }
+
+  const {
+    AlignmentType,
+    Document,
+    HeightRule,
+    PageBreak,
+    Paragraph,
+    Table,
+    TableCell,
+    TableRow,
+    TextRun,
+    VerticalAlign,
+    WidthType,
+  } = window.docx;
+
+  const cellPadding = ptToTwip(LABEL_CELL_PADDING_PT);
+  const cellHeight = ptToTwip(LABEL_CELL_HEIGHT_PT);
+  const lineHeight = ptToTwip(LABEL_LINE_HEIGHT_PT);
+
+  const buildCellParagraphs = (lines) =>
+    lines.map((line, index) => {
+      const text = String(line || "");
+      return new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 0, after: 0, line: lineHeight },
+        children: [
+          new TextRun({
+            text,
+            bold: index === 0,
+          }),
+        ],
+      });
+    });
+
+  const buildTable = (pageRows) => {
+    const cells = Array.from({ length: LABELS_PER_PAGE }).map(
+      (_, index) => pageRows[index]
+    );
+
+    const tableRows = Array.from({ length: LABEL_ROWS_PER_PAGE }).map((_, rowIndex) => {
+      const cols = Array.from({ length: LABEL_COLUMNS }).map((__, colIndex) => {
+        const label = cells[rowIndex * LABEL_COLUMNS + colIndex];
+        const { alumno, direccion } = label
+          ? formatLabelContent(label, fields)
+          : { alumno: "", direccion: "" };
+        const alumnoLines = splitLines(alumno);
+        const direccionLines = splitLines(direccion);
+        const lines = [];
+        if (alumnoLines.length) {
+          lines.push(...alumnoLines);
+        } else {
+          lines.push("");
         }
-        .labels-table td {
-          width: ${LABEL_CELL_WIDTH_CM}cm;
-          height: ${LABEL_CELL_HEIGHT_PT}pt;
-          padding: ${LABEL_CELL_PADDING_PT}pt;
-          vertical-align: top;
-          text-align: center;
-          overflow: hidden;
+        lines.push("");
+        if (direccionLines.length) {
+          lines.push(...direccionLines);
         }
-        .cell-line {
-          margin: 0;
-          line-height: ${LABEL_LINE_HEIGHT_PT}pt;
-          font-size: ${LABEL_FONT_SIZE_PT}pt;
-          font-family: Arial, sans-serif;
-          word-break: break-word;
-        }
-        .cell-line.bold { font-weight: 700; }
-        .page-break { page-break-after: always; }
-      </style>
-    </head>
-    <body>
-      ${tables}
-    </body>
-  </html>
-  `;
+        const paragraphs = buildCellParagraphs(lines);
+
+        return new TableCell({
+          width: { size: cmToTwip(LABEL_CELL_WIDTH_CM), type: WidthType.DXA },
+          verticalAlign: VerticalAlign.TOP,
+          margins: {
+            top: cellPadding,
+            bottom: cellPadding,
+            left: cellPadding,
+            right: cellPadding,
+          },
+          children: paragraphs,
+        });
+      });
+
+      return new TableRow({
+        height: { value: cellHeight, rule: HeightRule.EXACT },
+        children: cols,
+      });
+    });
+
+    return new Table({
+      width: { size: cmToTwip(LABEL_TABLE_WIDTH_CM), type: WidthType.DXA },
+      rows: tableRows,
+    });
+  };
+
+  const pages = [];
+  for (let i = 0; i < rows.length; i += LABELS_PER_PAGE) {
+    pages.push(rows.slice(i, i + LABELS_PER_PAGE));
+  }
+
+  const children = [];
+  pages.forEach((pageRows, index) => {
+    children.push(buildTable(pageRows));
+    if (index < pages.length - 1) {
+      children.push(new Paragraph({ children: [new PageBreak()] }));
+    }
+  });
+
+  return new Document({
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: {
+              top: ptToTwip(PAGE_MARGIN_TOP_BOTTOM_PT),
+              bottom: ptToTwip(PAGE_MARGIN_TOP_BOTTOM_PT),
+              left: cmToTwip(PAGE_MARGIN_SIDE_CM),
+              right: cmToTwip(PAGE_MARGIN_SIDE_CM),
+            },
+            size: {
+              width: cmToTwip(LABEL_TABLE_WIDTH_CM),
+              height: cmToTwip(29.7),
+            },
+          },
+        },
+        children,
+      },
+    ],
+  });
 };
 
 const buildPdfDocument = (rows, fields) => {
@@ -636,18 +721,22 @@ downloadPreviewBtn.addEventListener("click", () => {
   previewSection.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
-generateWordBtn.addEventListener("click", () => {
+generateWordBtn.addEventListener("click", async () => {
   if (!state.labelRows.length) return;
-  const html = buildWordDocument(state.labelRows, state.labelFields);
-  const blob = new Blob([html], { type: "application/msword" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "etiquetas-alumnos.doc";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  try {
+    const docxDocument = buildDocxDocument(state.labelRows, state.labelFields);
+    const blob = await window.docx.Packer.toBlob(docxDocument);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "etiquetas-alumnos.docx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    setStatus(csvSecondaryStatus, error.message, false);
+  }
 });
 
 generateMergeBtn.addEventListener("click", () => {
