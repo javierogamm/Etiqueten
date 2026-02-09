@@ -30,7 +30,7 @@ const state = {
   labelFields: null,
 };
 
-const appVersion = "0.4.3";
+const appVersion = "0.4.4";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
@@ -320,16 +320,28 @@ const buildLabelHTML = (rows, fields) => {
   `;
 };
 
+// Medidas APLI 01273 (idénticas a ejemplos/Resultado app.htm).
+const LABEL_COLUMNS = 3;
+const LABEL_ROWS_PER_PAGE = 8;
+const LABELS_PER_PAGE = LABEL_COLUMNS * LABEL_ROWS_PER_PAGE;
+const LABEL_TABLE_WIDTH_CM = 21.0;
+const LABEL_CELL_WIDTH_CM = 7.0;
+const LABEL_CELL_HEIGHT_PT = 104.9;
+const LABEL_CELL_PADDING_PT = 8.5;
+const PAGE_MARGIN_TOP_BOTTOM_PT = 70.85;
+const PAGE_MARGIN_SIDE_CM = 3.0;
+const LABEL_FONT_SIZE_PT = 10.0;
+const LABEL_LINE_HEIGHT_PT = 12.0;
+
 const buildLabelTable = (rows, fields) => {
-  const columns = 3;
-  const rowsPerPage = 8;
-  const labelsPerPage = columns * rowsPerPage;
 
   const buildTable = (pageRows) => {
-    const cells = Array.from({ length: labelsPerPage }).map((_, index) => pageRows[index]);
-    const tableRows = Array.from({ length: rowsPerPage }).map((_, rowIndex) => {
-      const cols = Array.from({ length: columns }).map((__, colIndex) => {
-        const label = cells[rowIndex * columns + colIndex];
+    const cells = Array.from({ length: LABELS_PER_PAGE }).map(
+      (_, index) => pageRows[index]
+    );
+    const tableRows = Array.from({ length: LABEL_ROWS_PER_PAGE }).map((_, rowIndex) => {
+      const cols = Array.from({ length: LABEL_COLUMNS }).map((__, colIndex) => {
+        const label = cells[rowIndex * LABEL_COLUMNS + colIndex];
         const { alumno, direccion } = label
           ? formatLabelContent(label, fields)
           : { alumno: "", direccion: "" };
@@ -361,11 +373,6 @@ const buildLabelTable = (rows, fields) => {
     });
     return `
       <table class="labels-table">
-        <colgroup>
-          <col style="width: 6.49cm;">
-          <col style="width: 7.01cm;">
-          <col style="width: 6.75cm;">
-        </colgroup>
         ${tableRows.join("")}
       </table>
     `;
@@ -373,8 +380,8 @@ const buildLabelTable = (rows, fields) => {
 
   const pages = [];
 
-  for (let i = 0; i < rows.length; i += labelsPerPage) {
-    const pageRows = rows.slice(i, i + labelsPerPage);
+  for (let i = 0; i < rows.length; i += LABELS_PER_PAGE) {
+    const pageRows = rows.slice(i, i + LABELS_PER_PAGE);
     pages.push(pageRows);
   }
 
@@ -399,25 +406,26 @@ const buildWordDocument = (rows, fields) => {
       <meta charset="utf-8">
       <title>Etiquetas alumnos</title>
       <style>
-        @page { size: 21.0cm 29.7cm; margin: 1.0cm 3.0cm 0.45cm; }
-        body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; }
+        /* Medidas APLI 01273 tomadas de ejemplos/Resultado app.htm */
+        @page { size: 21.0cm 29.7cm; margin: ${PAGE_MARGIN_TOP_BOTTOM_PT}pt ${PAGE_MARGIN_SIDE_CM}cm ${PAGE_MARGIN_TOP_BOTTOM_PT}pt ${PAGE_MARGIN_SIDE_CM}cm; }
+        body { font-family: Arial, sans-serif; font-size: ${LABEL_FONT_SIZE_PT}pt; margin: 0; }
         .labels-table {
           border-collapse: collapse;
           table-layout: fixed;
-          width: 20.25cm;
-          margin-left: -2.5cm;
+          width: ${LABEL_TABLE_WIDTH_CM}cm;
         }
         .labels-table td {
-          height: 94.95pt;
-          padding: 0 5.4pt;
+          width: ${LABEL_CELL_WIDTH_CM}cm;
+          height: ${LABEL_CELL_HEIGHT_PT}pt;
+          padding: ${LABEL_CELL_PADDING_PT}pt;
           vertical-align: top;
           text-align: center;
           overflow: hidden;
         }
         .cell-line {
           margin: 0;
-          line-height: 12.0pt;
-          font-size: 10.0pt;
+          line-height: ${LABEL_LINE_HEIGHT_PT}pt;
+          font-size: ${LABEL_FONT_SIZE_PT}pt;
           font-family: Arial, sans-serif;
           word-break: break-word;
         }
@@ -441,26 +449,27 @@ const buildPdfDocument = (rows, fields) => {
       <meta charset="utf-8">
       <title>Etiquetas alumnos</title>
       <style>
-        @page { size: 21.0cm 29.7cm; margin: 1.0cm 3.0cm 0.45cm; }
+        /* Medidas APLI 01273 tomadas de ejemplos/Resultado app.htm */
+        @page { size: 21.0cm 29.7cm; margin: ${PAGE_MARGIN_TOP_BOTTOM_PT}pt ${PAGE_MARGIN_SIDE_CM}cm ${PAGE_MARGIN_TOP_BOTTOM_PT}pt ${PAGE_MARGIN_SIDE_CM}cm; }
         html, body { margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; font-size: 10pt; }
+        body { font-family: Arial, sans-serif; font-size: ${LABEL_FONT_SIZE_PT}pt; }
         .labels-table {
           border-collapse: collapse;
           table-layout: fixed;
-          width: 20.25cm;
-          margin-left: -2.5cm;
+          width: ${LABEL_TABLE_WIDTH_CM}cm;
         }
         .labels-table td {
-          height: 94.95pt;
-          padding: 0 5.4pt;
+          width: ${LABEL_CELL_WIDTH_CM}cm;
+          height: ${LABEL_CELL_HEIGHT_PT}pt;
+          padding: ${LABEL_CELL_PADDING_PT}pt;
           vertical-align: top;
           text-align: center;
           overflow: hidden;
         }
         .cell-line {
           margin: 0;
-          line-height: 12.0pt;
-          font-size: 10.0pt;
+          line-height: ${LABEL_LINE_HEIGHT_PT}pt;
+          font-size: ${LABEL_FONT_SIZE_PT}pt;
           font-family: Arial, sans-serif;
           word-break: break-word;
         }
