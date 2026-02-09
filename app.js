@@ -27,7 +27,7 @@ const state = {
   labelRows: [],
 };
 
-const appVersion = "0.2.0";
+const appVersion = "0.3.0";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
@@ -58,6 +58,14 @@ const readFile = (file) =>
     reader.onload = () => resolve(reader.result);
     reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
     reader.readAsText(file, "utf-8");
+  });
+
+const readFileAsArrayBuffer = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.readAsArrayBuffer(file);
   });
 
 const detectDelimiter = (line) => {
@@ -128,6 +136,43 @@ const parseCSV = (text) => {
   const headers = rows.shift() || [];
   const data = rows.filter((r) => r.length > 0);
   return { headers, rows: data };
+};
+
+const normalizeCells = (row) =>
+  row.map((cell) => {
+    if (cell === null || cell === undefined) return "";
+    return String(cell).trim();
+  });
+
+const parseXLSX = (arrayBuffer) => {
+  if (!window.XLSX) {
+    throw new Error("No se encontró la librería para leer XLSX.");
+  }
+  const workbook = window.XLSX.read(arrayBuffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) {
+    return { headers: [], rows: [] };
+  }
+  const sheet = workbook.Sheets[sheetName];
+  const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+  const headers = normalizeCells(rows.shift() || []);
+  const data = rows
+    .map((row) => normalizeCells(row))
+    .filter((row) => row.some((cell) => cell.length > 0));
+  return { headers, rows: data };
+};
+
+const readSpreadsheet = async (file) => {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  if (extension === "csv") {
+    const text = await readFile(file);
+    return parseCSV(text);
+  }
+  if (extension === "xlsx") {
+    const buffer = await readFileAsArrayBuffer(file);
+    return parseXLSX(buffer);
+  }
+  throw new Error("Formato no compatible. Usa CSV o XLSX.");
 };
 
 const normalizeHeader = (header) => header.toLowerCase().trim();
@@ -287,8 +332,7 @@ csvPrimaryInput.addEventListener("change", async (event) => {
   setStatus(csvPrimaryStatus, `Cargando ${file.name}...`, false);
 
   try {
-    const text = await readFile(file);
-    const parsed = parseCSV(text);
+    const parsed = await readSpreadsheet(file);
     const missing = findMissingHeaders(parsed.headers, requiredPrimaryHeaders);
 
     if (missing.length) {
@@ -305,7 +349,7 @@ csvPrimaryInput.addEventListener("change", async (event) => {
     });
 
     state.primary = { ...parsed, rows: normalizedRows, nifIndex, name: file.name };
-    setStatus(csvPrimaryStatus, `CSV cargado: ${file.name}`, true);
+    setStatus(csvPrimaryStatus, `Archivo cargado: ${file.name}`, true);
     primaryData.hidden = false;
     primaryCount.textContent = `${parsed.rows.length} filas`;
     renderTable(primaryTable, parsed.headers, normalizedRows, { limit: 50 });
@@ -336,8 +380,7 @@ csvSecondaryInput.addEventListener("change", async (event) => {
   setStatus(csvSecondaryStatus, `Cargando ${file.name}...`, false);
 
   try {
-    const text = await readFile(file);
-    const parsed = parseCSV(text);
+    const parsed = await readSpreadsheet(file);
     const missing = findMissingHeaders(parsed.headers, requiredSecondaryHeaders);
 
     if (missing.length) {
@@ -377,7 +420,7 @@ csvSecondaryInput.addEventListener("change", async (event) => {
     const matchNifSet = new Set(matches.map((row) => row[nifIndex]).filter(Boolean));
     state.labelRows = state.primary.rows.filter((row) => matchNifSet.has(row[primaryNifIndex]));
 
-    setStatus(csvSecondaryStatus, `CSV cargado: ${file.name}`, true);
+    setStatus(csvSecondaryStatus, `Archivo cargado: ${file.name}`, true);
     matchSummary.hidden = false;
     matchResults.hidden = false;
     matchCount.textContent = matches.length.toString();

@@ -12,3 +12,7 @@
 - Rediseñado el flujo para cargar un único CSV de alumnos, visualizar los datos y abrir un modal para el cruce con un segundo CSV.
 - Añadido el modal de coincidencias con NIF en verde, resumen de coincidencias y descarga de Word filtrado.
 - Actualizados estilos, tablas y versión visible de la app.
+
+## 0.3.0
+- Añadida la importación de archivos XLSX con la misma estructura que los CSV, manteniendo las validaciones de columnas.
+- Actualizados los textos, versionado visible y formatos aceptados para CSV/XLSX.
