@@ -7,3 +7,8 @@
 ## 0.1.1
 - Actualizado el formato de etiquetas a Apli 01273 (70 × 37 mm, 24 por hoja) en textos, vista previa y documento Word.
 - Cambiada la versión visible de la app y el nombre del archivo de descarga.
+
+## 0.2.0
+- Rediseñado el flujo para cargar un único CSV de alumnos, visualizar los datos y abrir un modal para el cruce con un segundo CSV.
+- Añadido el modal de coincidencias con NIF en verde, resumen de coincidencias y descarga de Word filtrado.
+- Actualizados estilos, tablas y versión visible de la app.

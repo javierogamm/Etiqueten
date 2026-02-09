@@ -1,28 +1,56 @@
-const csv1Input = document.getElementById("csv1");
-const csv2Input = document.getElementById("csv2");
-const csv1Status = document.getElementById("csv1Status");
-const csv2Status = document.getElementById("csv2Status");
-const csv1Summary = document.getElementById("csv1Summary");
-const csv2Summary = document.getElementById("csv2Summary");
-const resultSummary = document.getElementById("resultSummary");
-const filterBtn = document.getElementById("filterBtn");
-const downloadBtn = document.getElementById("downloadDoc");
-const previewBtn = document.getElementById("previewBtn");
+const csvPrimaryInput = document.getElementById("csvPrimary");
+const csvSecondaryInput = document.getElementById("csvSecondary");
+const csvPrimaryStatus = document.getElementById("csvPrimaryStatus");
+const csvSecondaryStatus = document.getElementById("csvSecondaryStatus");
+const primaryTable = document.getElementById("primaryTable");
+const primaryData = document.getElementById("primaryData");
+const primaryCount = document.getElementById("primaryCount");
+const openModalBtn = document.getElementById("openModal");
+const labelsModal = document.getElementById("labelsModal");
+const closeModalBtn = document.getElementById("closeModal");
+const matchSummary = document.getElementById("matchSummary");
+const matchCount = document.getElementById("matchCount");
+const mismatchCount = document.getElementById("mismatchCount");
+const matchesTable = document.getElementById("matchesTable");
+const mismatchesTable = document.getElementById("mismatchesTable");
+const matchResults = document.getElementById("matchResults");
+const generateWordBtn = document.getElementById("generateWord");
+const downloadPreviewBtn = document.getElementById("downloadPreview");
 const previewSection = document.getElementById("previewSection");
 const labelsPreview = document.getElementById("labelsPreview");
 
 const state = {
-  csv1: null,
-  csv2: null,
+  primary: null,
+  secondary: null,
   matches: [],
-  headers: [],
+  mismatches: [],
+  labelRows: [],
 };
 
-const appVersion = "0.1.1";
+const appVersion = "0.2.0";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
 }
+
+const requiredPrimaryHeaders = [
+  "promoción cag",
+  "promoción caz",
+  "promoción cgd",
+  "alumno",
+  "estado expediente",
+  "nif",
+  "entidad",
+  "cif entidad",
+  "provincia",
+  "dirección completa",
+  "envío revista",
+  "cag",
+  "caz",
+  "cgd",
+];
+
+const requiredSecondaryHeaders = ["alumno", "estado expediente", "nif"];
 
 const readFile = (file) =>
   new Promise((resolve, reject) => {
@@ -32,11 +60,27 @@ const readFile = (file) =>
     reader.readAsText(file, "utf-8");
   });
 
+const detectDelimiter = (line) => {
+  const delimiters = [",", ";", "\t"];
+  let best = delimiters[0];
+  let maxCount = 0;
+  delimiters.forEach((delimiter) => {
+    const count = line.split(delimiter).length - 1;
+    if (count > maxCount) {
+      maxCount = count;
+      best = delimiter;
+    }
+  });
+  return best;
+};
+
 const parseCSV = (text) => {
   const rows = [];
   let current = "";
   let row = [];
   let inQuotes = false;
+  const firstLine = text.split(/\r?\n/)[0] || "";
+  const delimiter = detectDelimiter(firstLine);
 
   for (let i = 0; i < text.length; i += 1) {
     const char = text[i];
@@ -52,7 +96,7 @@ const parseCSV = (text) => {
       continue;
     }
 
-    if (char === "," && !inQuotes) {
+    if (char === delimiter && !inQuotes) {
       row.push(current.trim());
       current = "";
       continue;
@@ -86,24 +130,46 @@ const parseCSV = (text) => {
   return { headers, rows: data };
 };
 
-const detectNifColumn = (headers) => {
-  const normalized = headers.map((header) => header.toLowerCase().trim());
-  const index = normalized.findIndex((header) => header === "nif" || header.includes("nif"));
-  return index >= 0 ? index : null;
+const normalizeHeader = (header) => header.toLowerCase().trim();
+
+const findMissingHeaders = (headers, required) => {
+  const normalized = headers.map(normalizeHeader);
+  return required.filter((field) => !normalized.includes(field));
 };
 
-const updateSummary = (element, rows, headers, nifIndex) => {
-  element.innerHTML = `
-    <li>Filas: ${rows.length}</li>
-    <li>Columna NIF: ${nifIndex !== null ? headers[nifIndex] : "No detectada"}</li>
-  `;
+const findHeaderIndex = (headers, name) => {
+  const normalized = headers.map(normalizeHeader);
+  return normalized.findIndex((header) => header === name);
 };
 
-const updateResultSummary = (matches, headers) => {
-  resultSummary.innerHTML = `
-    <li>Coincidencias: ${matches.length}</li>
-    <li>Columnas disponibles: ${headers.join(", ") || "—"}</li>
+const renderTable = (table, headers, rows, options = {}) => {
+  const { highlightNif = false, nifIndex = null, limit = 50 } = options;
+  const shownRows = rows.slice(0, limit);
+  const thead = `
+    <thead>
+      <tr>
+        ${headers.map((header) => `<th>${header}</th>`).join("")}
+      </tr>
+    </thead>
   `;
+
+  const tbody = `
+    <tbody>
+      ${shownRows
+        .map((row) =>
+          `<tr>${headers
+            .map((header, index) => {
+              const value = row[index] || "";
+              const highlight = highlightNif && index === nifIndex ? "match" : "";
+              return `<td class="${highlight}">${value}</td>`;
+            })
+            .join("")}</tr>`
+        )
+        .join("")}
+    </tbody>
+  `;
+
+  table.innerHTML = `${thead}${tbody}`;
 };
 
 const setStatus = (element, text, isReady) => {
@@ -111,69 +177,34 @@ const setStatus = (element, text, isReady) => {
   element.classList.toggle("ready", Boolean(isReady));
 };
 
-const validateReady = () => {
-  filterBtn.disabled = !(state.csv1 && state.csv2);
+const resetModalState = () => {
+  csvSecondaryInput.value = "";
+  setStatus(csvSecondaryStatus, "Sin archivo cargado.", false);
+  matchSummary.hidden = true;
+  matchResults.hidden = true;
+  previewSection.hidden = true;
+  generateWordBtn.disabled = true;
+  downloadPreviewBtn.disabled = true;
+  matchesTable.innerHTML = "";
+  mismatchesTable.innerHTML = "";
+  labelsPreview.innerHTML = "";
+  state.secondary = null;
+  state.matches = [];
+  state.mismatches = [];
+  state.labelRows = [];
 };
 
-const handleCSVUpload = async (file, target) => {
-  try {
-    const text = await readFile(file);
-    const parsed = parseCSV(text);
-    const nifIndex = detectNifColumn(parsed.headers);
-
-    if (nifIndex === null) {
-      throw new Error("No se ha encontrado una columna con NIF.");
-    }
-
-    return { ...parsed, nifIndex, name: file.name };
-  } catch (error) {
-    setStatus(target, error.message, false);
-    return null;
-  }
+const openModal = () => {
+  labelsModal.hidden = false;
+  labelsModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
 };
 
-csv1Input.addEventListener("change", async (event) => {
-  const [file] = event.target.files;
-  if (!file) return;
-
-  setStatus(csv1Status, `Cargando ${file.name}...`, false);
-  const parsed = await handleCSVUpload(file, csv1Status);
-  if (!parsed) return;
-
-  state.csv1 = parsed;
-  setStatus(csv1Status, `CSV1 cargado: ${parsed.name}`, true);
-  updateSummary(csv1Summary, parsed.rows, parsed.headers, parsed.nifIndex);
-  validateReady();
-});
-
-csv2Input.addEventListener("change", async (event) => {
-  const [file] = event.target.files;
-  if (!file) return;
-
-  setStatus(csv2Status, `Cargando ${file.name}...`, false);
-  const parsed = await handleCSVUpload(file, csv2Status);
-  if (!parsed) return;
-
-  state.csv2 = parsed;
-  setStatus(csv2Status, `CSV2 cargado: ${parsed.name}`, true);
-  updateSummary(csv2Summary, parsed.rows, parsed.headers, parsed.nifIndex);
-  validateReady();
-});
-
-const buildMatches = () => {
-  if (!state.csv1 || !state.csv2) return [];
-  const nifSet = new Set(
-    state.csv1.rows
-      .map((row) => row[state.csv1.nifIndex])
-      .filter((value) => value && value.length > 0)
-      .map((value) => value.toUpperCase())
-  );
-
-  return state.csv2.rows.filter((row) => {
-    const nifValue = row[state.csv2.nifIndex];
-    if (!nifValue) return false;
-    return nifSet.has(nifValue.toUpperCase());
-  });
+const closeModal = () => {
+  labelsModal.hidden = true;
+  labelsModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+  resetModalState();
 };
 
 const buildLabelHTML = (headers, rows) => {
@@ -218,7 +249,7 @@ const buildWordDocument = (headers, rows) => {
   <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
     <head>
       <meta charset="utf-8">
-      <title>Etiquetas Apli 01273</title>
+      <title>Etiquetas alumnos</title>
       <style>
         @page { size: A4; margin: 0mm; }
         body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; }
@@ -249,31 +280,142 @@ const buildWordDocument = (headers, rows) => {
   `;
 };
 
-filterBtn.addEventListener("click", () => {
-  const matches = buildMatches();
-  state.matches = matches;
-  state.headers = state.csv2 ? state.csv2.headers : [];
-  updateResultSummary(matches, state.headers);
-  downloadBtn.disabled = matches.length === 0;
-  previewBtn.disabled = matches.length === 0;
-  previewSection.hidden = matches.length === 0;
+csvPrimaryInput.addEventListener("change", async (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+
+  setStatus(csvPrimaryStatus, `Cargando ${file.name}...`, false);
+
+  try {
+    const text = await readFile(file);
+    const parsed = parseCSV(text);
+    const missing = findMissingHeaders(parsed.headers, requiredPrimaryHeaders);
+
+    if (missing.length) {
+      throw new Error(`Faltan columnas: ${missing.join(", ")}`);
+    }
+
+    const nifIndex = findHeaderIndex(parsed.headers, "nif");
+    const normalizedRows = parsed.rows.map((row) => {
+      const copy = [...row];
+      if (nifIndex >= 0) {
+        copy[nifIndex] = (copy[nifIndex] || "").toUpperCase();
+      }
+      return copy;
+    });
+
+    state.primary = { ...parsed, rows: normalizedRows, nifIndex, name: file.name };
+    setStatus(csvPrimaryStatus, `CSV cargado: ${file.name}`, true);
+    primaryData.hidden = false;
+    primaryCount.textContent = `${parsed.rows.length} filas`;
+    renderTable(primaryTable, parsed.headers, normalizedRows, { limit: 50 });
+    openModalBtn.disabled = false;
+  } catch (error) {
+    setStatus(csvPrimaryStatus, error.message, false);
+    primaryData.hidden = true;
+    openModalBtn.disabled = true;
+  }
 });
 
-previewBtn.addEventListener("click", () => {
-  if (!state.matches.length) return;
-  labelsPreview.innerHTML = buildLabelHTML(state.headers, state.matches);
+openModalBtn.addEventListener("click", () => {
+  if (!state.primary) return;
+  openModal();
+});
+
+closeModalBtn.addEventListener("click", closeModal);
+labelsModal.addEventListener("click", (event) => {
+  if (event.target === labelsModal) {
+    closeModal();
+  }
+});
+
+csvSecondaryInput.addEventListener("change", async (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+
+  setStatus(csvSecondaryStatus, `Cargando ${file.name}...`, false);
+
+  try {
+    const text = await readFile(file);
+    const parsed = parseCSV(text);
+    const missing = findMissingHeaders(parsed.headers, requiredSecondaryHeaders);
+
+    if (missing.length) {
+      throw new Error(`Faltan columnas: ${missing.join(", ")}`);
+    }
+
+    const nifIndex = findHeaderIndex(parsed.headers, "nif");
+    const normalizedRows = parsed.rows.map((row) => {
+      const copy = [...row];
+      copy[nifIndex] = (copy[nifIndex] || "").toUpperCase();
+      return copy;
+    });
+
+    const primaryNifIndex = state.primary.nifIndex;
+    const primaryNifSet = new Set(
+      state.primary.rows
+        .map((row) => row[primaryNifIndex])
+        .filter((value) => value && value.length > 0)
+    );
+
+    const matches = [];
+    const mismatches = [];
+
+    normalizedRows.forEach((row) => {
+      const nif = row[nifIndex];
+      if (nif && primaryNifSet.has(nif)) {
+        matches.push(row);
+      } else {
+        mismatches.push(row);
+      }
+    });
+
+    state.secondary = { ...parsed, rows: normalizedRows, nifIndex, name: file.name };
+    state.matches = matches;
+    state.mismatches = mismatches;
+
+    const matchNifSet = new Set(matches.map((row) => row[nifIndex]).filter(Boolean));
+    state.labelRows = state.primary.rows.filter((row) => matchNifSet.has(row[primaryNifIndex]));
+
+    setStatus(csvSecondaryStatus, `CSV cargado: ${file.name}`, true);
+    matchSummary.hidden = false;
+    matchResults.hidden = false;
+    matchCount.textContent = matches.length.toString();
+    mismatchCount.textContent = mismatches.length.toString();
+
+    renderTable(matchesTable, parsed.headers, matches, {
+      highlightNif: true,
+      nifIndex,
+      limit: 50,
+    });
+    renderTable(mismatchesTable, parsed.headers, mismatches, { limit: 50 });
+
+    generateWordBtn.disabled = matches.length === 0;
+    downloadPreviewBtn.disabled = matches.length === 0;
+  } catch (error) {
+    setStatus(csvSecondaryStatus, error.message, false);
+    matchSummary.hidden = true;
+    matchResults.hidden = true;
+    generateWordBtn.disabled = true;
+    downloadPreviewBtn.disabled = true;
+  }
+});
+
+downloadPreviewBtn.addEventListener("click", () => {
+  if (!state.labelRows.length) return;
+  labelsPreview.innerHTML = buildLabelHTML(state.primary.headers, state.labelRows);
   previewSection.hidden = false;
   previewSection.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
-downloadBtn.addEventListener("click", () => {
-  if (!state.matches.length) return;
-  const html = buildWordDocument(state.headers, state.matches);
+generateWordBtn.addEventListener("click", () => {
+  if (!state.labelRows.length) return;
+  const html = buildWordDocument(state.primary.headers, state.labelRows);
   const blob = new Blob([html], { type: "application/msword" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "etiquetas-apli-01273.doc";
+  link.download = "etiquetas-alumnos.doc";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
