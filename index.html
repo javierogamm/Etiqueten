@@ -10,30 +10,30 @@
     <main class="app">
       <header class="hero">
         <div>
-          <p class="eyebrow">APP local · Etiquetas por CSV</p>
+          <p class="eyebrow">APP local · Etiquetas por CSV/XLSX</p>
           <h1>Etiqueten</h1>
           <p class="lead">
             Carga el CSV de alumnos, revisa los datos y genera etiquetas filtradas por NIF con un segundo CSV.
           </p>
         </div>
-        <div class="version">Versión <span id="appVersion">0.2.0</span></div>
+        <div class="version">Versión <span id="appVersion">0.3.0</span></div>
       </header>
 
       <section class="card" aria-labelledby="step-1">
         <div class="card-header">
           <span class="step">1</span>
           <div>
-            <h2 id="step-1">Carga del CSV de alumnos</h2>
+            <h2 id="step-1">Carga del CSV/XLSX de alumnos</h2>
             <p>
-              El CSV debe contener las columnas: Promoción CAG, Promoción CAZ, Promoción CGD, Alumno, Estado expediente,
+              El archivo debe contener las columnas: Promoción CAG, Promoción CAZ, Promoción CGD, Alumno, Estado expediente,
               NIF, Entidad, CIF Entidad, Provincia, DIRECCIÓN COMPLETA, ENVÍO REVISTA, CAG, CAZ, CGD.
             </p>
           </div>
         </div>
         <div class="card-body">
           <label class="file">
-            <span>Selecciona el CSV de alumnos</span>
-            <input type="file" id="csvPrimary" accept=".csv" />
+            <span>Selecciona el CSV/XLSX de alumnos</span>
+            <input type="file" id="csvPrimary" accept=".csv,.xlsx" />
           </label>
           <p class="hint" id="csvPrimaryStatus">Sin archivo cargado.</p>
           <div class="data-block" id="primaryData" hidden>
@@ -54,7 +54,7 @@
           <div>
             <h2 id="step-2">Generar etiquetas</h2>
             <p>
-              Abre el modal, carga el segundo CSV con NIF y confirma las coincidencias antes de generar el Word.
+              Abre el modal, carga el segundo CSV/XLSX con NIF y confirma las coincidencias antes de generar el Word.
             </p>
           </div>
         </div>
@@ -77,8 +77,8 @@
           <div class="modal-grid">
             <div>
               <label class="file">
-                <span>Sube el CSV de control (Alumno, Estado expediente, NIF)</span>
-                <input type="file" id="csvSecondary" accept=".csv" />
+                <span>Sube el CSV/XLSX de control (Alumno, Estado expediente, NIF)</span>
+                <input type="file" id="csvSecondary" accept=".csv,.xlsx" />
               </label>
               <p class="hint" id="csvSecondaryStatus">Sin archivo cargado.</p>
               <div class="summary-grid" id="matchSummary" hidden>
@@ -119,6 +119,7 @@
 
     <footer class="footer">Hecho para ejecución local · HTML + JS</footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
