@@ -204,6 +204,12 @@ button:not(:disabled):hover {
   color: #fff;
 }
 
+.secondary.outline {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #111827;
+}
+
 .ghost {
   background: #eef2ff;
   color: #4338ca;
@@ -352,6 +358,12 @@ button:not(:disabled):hover {
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
+}
+
+.labels-preview .label-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .footer {
