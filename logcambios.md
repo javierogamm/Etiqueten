@@ -21,3 +21,8 @@
 - Ajustada la generación de Word a una tabla APLI 01273 con “Alumno” y “Dirección completa” por celda.
 - Añadida la descarga de archivo para combinar correspondencia APLI 01273 desde el modal.
 - Actualizada la versión visible de la app y la previsualización de etiquetas.
+
+## 0.4.1
+- Corregida la descarga para generar un archivo Word compatible con HTML en formato .doc.
+- Respetados los saltos de línea en la vista previa y en el documento Word para mantener el formato de etiquetas.
+- Actualizada la versión visible de la app.
