@@ -361,9 +361,9 @@ button:not(:disabled):hover {
 }
 
 .labels-preview .label-line {
-  white-space: nowrap;
+  white-space: pre-line;
   overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .footer {

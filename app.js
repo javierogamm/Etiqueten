@@ -29,7 +29,7 @@ const state = {
   labelFields: null,
 };
 
-const appVersion = "0.4.0";
+const appVersion = "0.4.1";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
@@ -268,14 +268,22 @@ const formatLabelContent = (row, fields) => {
   return { alumno, direccion };
 };
 
+const formatLabelHTML = (value) => {
+  const text = String(value || "");
+  if (!text) return "&nbsp;";
+  return text.replace(/\r\n|\r|\n/g, "<br>");
+};
+
 const buildLabelHTML = (rows, fields) => {
   const labels = rows
     .map((row) => {
       const { alumno, direccion } = formatLabelContent(row, fields);
+      const alumnoHtml = formatLabelHTML(alumno);
+      const direccionHtml = formatLabelHTML(direccion);
       return `
         <div class="label">
-          <div class="label-line">${alumno || "&nbsp;"}</div>
-          <div class="label-line">${direccion || "&nbsp;"}</div>
+          <div class="label-line">${alumnoHtml}</div>
+          <div class="label-line">${direccionHtml}</div>
         </div>
       `;
     })
@@ -309,10 +317,12 @@ const buildWordDocument = (rows, fields) => {
         const { alumno, direccion } = label
           ? formatLabelContent(label, fields)
           : { alumno: "", direccion: "" };
+        const alumnoHtml = formatLabelHTML(alumno);
+        const direccionHtml = formatLabelHTML(direccion);
         return `
           <td>
-            <div class="cell-line">${alumno || "&nbsp;"}</div>
-            <div class="cell-line">${direccion || "&nbsp;"}</div>
+            <div class="cell-line">${alumnoHtml}</div>
+            <div class="cell-line">${direccionHtml}</div>
           </td>
         `;
       });
@@ -341,7 +351,7 @@ const buildWordDocument = (rows, fields) => {
           vertical-align: middle;
           overflow: hidden;
         }
-        .cell-line { line-height: 1.2; }
+        .cell-line { line-height: 1.2; white-space: pre-line; word-break: break-word; }
         .page-break { page-break-after: always; }
       </style>
     </head>
@@ -517,7 +527,7 @@ generateWordBtn.addEventListener("click", () => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "etiquetas-alumnos.docx";
+  link.download = "etiquetas-alumnos.doc";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
