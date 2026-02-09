@@ -26,3 +26,8 @@
 - Corregida la descarga para generar un archivo Word compatible con HTML en formato .doc.
 - Respetados los saltos de línea en la vista previa y en el documento Word para mantener el formato de etiquetas.
 - Actualizada la versión visible de la app.
+
+## 0.4.2
+- Ajustado el HTML generado para Word con márgenes, tamaños y centrado alineados al formato del DOCX de referencia.
+- Añadidos párrafos de línea en etiquetas con separación y negrita del nombre para mantener la alineación.
+- Actualizada la versión visible de la app.

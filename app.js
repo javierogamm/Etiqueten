@@ -29,7 +29,7 @@ const state = {
   labelFields: null,
 };
 
-const appVersion = "0.4.1";
+const appVersion = "0.4.2";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
@@ -274,6 +274,26 @@ const formatLabelHTML = (value) => {
   return text.replace(/\r\n|\r|\n/g, "<br>");
 };
 
+const escapeHtml = (value) =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const splitLines = (value) => {
+  const text = String(value || "").trim();
+  if (!text) return [];
+  return text.split(/\r\n|\r|\n/);
+};
+
+const formatWordLine = (value) => {
+  const text = String(value || "");
+  if (!text.trim()) return "&nbsp;";
+  return escapeHtml(text);
+};
+
 const buildLabelHTML = (rows, fields) => {
   const labels = rows
     .map((row) => {
@@ -317,12 +337,27 @@ const buildWordDocument = (rows, fields) => {
         const { alumno, direccion } = label
           ? formatLabelContent(label, fields)
           : { alumno: "", direccion: "" };
-        const alumnoHtml = formatLabelHTML(alumno);
-        const direccionHtml = formatLabelHTML(direccion);
+        const alumnoLines = splitLines(alumno);
+        const direccionLines = splitLines(direccion);
+        const lines = [];
+        if (alumnoLines.length) {
+          lines.push(...alumnoLines);
+        } else {
+          lines.push("");
+        }
+        lines.push("");
+        if (direccionLines.length) {
+          lines.push(...direccionLines);
+        }
+        const paragraphs = lines
+          .map((line, index) => {
+            const classes = index === 0 ? "cell-line bold" : "cell-line";
+            return `<p class="${classes}">${formatWordLine(line)}</p>`;
+          })
+          .join("");
         return `
           <td>
-            <div class="cell-line">${alumnoHtml}</div>
-            <div class="cell-line">${direccionHtml}</div>
+            ${paragraphs}
           </td>
         `;
       });
@@ -337,21 +372,30 @@ const buildWordDocument = (rows, fields) => {
       <meta charset="utf-8">
       <title>Etiquetas alumnos</title>
       <style>
-        @page { size: A4; margin: 0mm; }
+        @page { size: 595.3pt 841.9pt; margin: 70.85pt 3.0cm; }
         body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; }
         .labels-table {
           border-collapse: collapse;
-          width: 210mm;
+          width: 21.0cm;
           table-layout: fixed;
+          margin: 0 auto;
         }
         .labels-table td {
-          width: 70mm;
-          height: 37mm;
-          padding: 3mm;
-          vertical-align: middle;
+          width: 7.0cm;
+          height: 104.9pt;
+          padding: 8.5pt;
+          vertical-align: top;
+          text-align: center;
           overflow: hidden;
         }
-        .cell-line { line-height: 1.2; white-space: pre-line; word-break: break-word; }
+        .cell-line {
+          margin: 0;
+          line-height: 12.0pt;
+          font-size: 10.0pt;
+          font-family: Arial, sans-serif;
+          word-break: break-word;
+        }
+        .cell-line.bold { font-weight: 700; }
         .page-break { page-break-after: always; }
       </style>
     </head>
