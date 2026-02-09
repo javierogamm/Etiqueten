@@ -46,7 +46,3 @@
 - Sustituida la exportación Word basada en HTML por generación DOCX con la librería Docx para respetar márgenes y eliminar cabeceras/pies.
 - Ajustada la descarga a formato .docx e incluida la dependencia Docx en la app.
 - Actualizada la versión visible de la app.
-
-## 0.4.6
-- Corregida la carga de la librería Docx usando el build UMD y un fallback para detectar el módulo en el navegador.
-- Actualizada la versión visible de la app.

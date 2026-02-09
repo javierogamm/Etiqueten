@@ -30,7 +30,7 @@ const state = {
   labelFields: null,
 };
 
-const appVersion = "0.4.6";
+const appVersion = "0.4.5";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
@@ -401,11 +401,8 @@ const buildLabelTable = (rows, fields) => {
 const cmToTwip = (value) => Math.round(value * 566.9291338583);
 const ptToTwip = (value) => Math.round(value * 20);
 
-const getDocxLib = () => window.docx?.default ?? window.docx;
-
 const buildDocxDocument = (rows, fields) => {
-  const docxLib = getDocxLib();
-  if (!docxLib) {
+  if (!window.docx) {
     throw new Error("No se encontró la librería DOCX.");
   }
 
@@ -421,7 +418,7 @@ const buildDocxDocument = (rows, fields) => {
     TextRun,
     VerticalAlign,
     WidthType,
-  } = docxLib;
+  } = window.docx;
 
   const cellPadding = ptToTwip(LABEL_CELL_PADDING_PT);
   const cellHeight = ptToTwip(LABEL_CELL_HEIGHT_PT);
@@ -728,11 +725,7 @@ generateWordBtn.addEventListener("click", async () => {
   if (!state.labelRows.length) return;
   try {
     const docxDocument = buildDocxDocument(state.labelRows, state.labelFields);
-    const docxLib = getDocxLib();
-    if (!docxLib) {
-      throw new Error("No se encontró la librería DOCX.");
-    }
-    const blob = await docxLib.Packer.toBlob(docxDocument);
+    const blob = await window.docx.Packer.toBlob(docxDocument);
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
