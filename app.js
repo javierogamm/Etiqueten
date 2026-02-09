@@ -15,6 +15,7 @@ const matchesTable = document.getElementById("matchesTable");
 const mismatchesTable = document.getElementById("mismatchesTable");
 const matchResults = document.getElementById("matchResults");
 const generateWordBtn = document.getElementById("generateWord");
+const generateMergeBtn = document.getElementById("generateMerge");
 const downloadPreviewBtn = document.getElementById("downloadPreview");
 const previewSection = document.getElementById("previewSection");
 const labelsPreview = document.getElementById("labelsPreview");
@@ -25,9 +26,10 @@ const state = {
   matches: [],
   mismatches: [],
   labelRows: [],
+  labelFields: null,
 };
 
-const appVersion = "0.3.0";
+const appVersion = "0.4.0";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
@@ -229,6 +231,7 @@ const resetModalState = () => {
   matchResults.hidden = true;
   previewSection.hidden = true;
   generateWordBtn.disabled = true;
+  generateMergeBtn.disabled = true;
   downloadPreviewBtn.disabled = true;
   matchesTable.innerHTML = "";
   mismatchesTable.innerHTML = "";
@@ -237,6 +240,7 @@ const resetModalState = () => {
   state.matches = [];
   state.mismatches = [];
   state.labelRows = [];
+  state.labelFields = null;
 };
 
 const openModal = () => {
@@ -252,18 +256,28 @@ const closeModal = () => {
   resetModalState();
 };
 
-const buildLabelHTML = (headers, rows) => {
+const getLabelFields = (headers) => ({
+  alumnoIndex: findHeaderIndex(headers, "alumno"),
+  direccionIndex: findHeaderIndex(headers, "dirección completa"),
+});
+
+const formatLabelContent = (row, fields) => {
+  if (!fields) return { alumno: "", direccion: "" };
+  const alumno = row[fields.alumnoIndex] || "";
+  const direccion = row[fields.direccionIndex] || "";
+  return { alumno, direccion };
+};
+
+const buildLabelHTML = (rows, fields) => {
   const labels = rows
     .map((row) => {
-      const lines = headers
-        .map((header, index) => {
-          const value = row[index] || "";
-          if (!value) return null;
-          return `<div><strong>${header}:</strong> ${value}</div>`;
-        })
-        .filter(Boolean)
-        .join("");
-      return `<div class="label">${lines}</div>`;
+      const { alumno, direccion } = formatLabelContent(row, fields);
+      return `
+        <div class="label">
+          <div class="label-line">${alumno || "&nbsp;"}</div>
+          <div class="label-line">${direccion || "&nbsp;"}</div>
+        </div>
+      `;
     })
     .join("");
 
@@ -276,19 +290,36 @@ const buildLabelHTML = (headers, rows) => {
   `;
 };
 
-const buildWordDocument = (headers, rows) => {
-  const labels = rows
-    .map((row) => {
-      const lines = headers
-        .map((header, index) => {
-          const value = row[index] || "";
-          if (!value) return "";
-          return `<div><strong>${header}:</strong> ${value}</div>`;
-        })
-        .join("");
-      return `<div class="label">${lines}</div>`;
-    })
-    .join("");
+const buildWordDocument = (rows, fields) => {
+  const columns = 3;
+  const rowsPerPage = 8;
+  const labelsPerPage = columns * rowsPerPage;
+  const pages = [];
+
+  for (let i = 0; i < rows.length; i += labelsPerPage) {
+    const pageRows = rows.slice(i, i + labelsPerPage);
+    pages.push(pageRows);
+  }
+
+  const buildTable = (pageRows) => {
+    const cells = Array.from({ length: labelsPerPage }).map((_, index) => pageRows[index]);
+    const tableRows = Array.from({ length: rowsPerPage }).map((_, rowIndex) => {
+      const cols = Array.from({ length: columns }).map((__, colIndex) => {
+        const label = cells[rowIndex * columns + colIndex];
+        const { alumno, direccion } = label
+          ? formatLabelContent(label, fields)
+          : { alumno: "", direccion: "" };
+        return `
+          <td>
+            <div class="cell-line">${alumno || "&nbsp;"}</div>
+            <div class="cell-line">${direccion || "&nbsp;"}</div>
+          </td>
+        `;
+      });
+      return `<tr>${cols.join("")}</tr>`;
+    });
+    return `<table class="labels-table">${tableRows.join("")}</table>`;
+  };
 
   return `
   <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -298,31 +329,55 @@ const buildWordDocument = (headers, rows) => {
       <style>
         @page { size: A4; margin: 0mm; }
         body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; }
-        .label-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 70mm);
-          grid-auto-rows: 37mm;
-          gap: 0;
+        .labels-table {
+          border-collapse: collapse;
+          width: 210mm;
+          table-layout: fixed;
         }
-        .label {
-          border: 0.2mm solid #999;
-          padding: 3mm 3mm;
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
+        .labels-table td {
+          width: 70mm;
+          height: 37mm;
+          padding: 3mm;
+          vertical-align: middle;
           overflow: hidden;
         }
-        .label div { line-height: 1.2; }
+        .cell-line { line-height: 1.2; }
+        .page-break { page-break-after: always; }
       </style>
     </head>
     <body>
-      <div class="label-grid">
-        ${labels}
-      </div>
+      ${pages
+        .map((pageRows, index) => {
+          const table = buildTable(pageRows);
+          if (index === pages.length - 1) {
+            return table;
+          }
+          return `<div class="page-break">${table}</div>`;
+        })
+        .join("")}
     </body>
   </html>
   `;
+};
+
+const buildMergeCSV = (rows, fields) => {
+  const escapeValue = (value) => {
+    const text = String(value || "");
+    if (text.includes('"') || text.includes(",") || text.includes("\n")) {
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+  };
+
+  const lines = [
+    ["Alumno", "Dirección completa"].map(escapeValue).join(","),
+    ...rows.map((row) => {
+      const { alumno, direccion } = formatLabelContent(row, fields);
+      return [alumno, direccion].map(escapeValue).join(",");
+    }),
+  ];
+
+  return lines.join("\r\n");
 };
 
 csvPrimaryInput.addEventListener("change", async (event) => {
@@ -348,7 +403,9 @@ csvPrimaryInput.addEventListener("change", async (event) => {
       return copy;
     });
 
+    const labelFields = getLabelFields(parsed.headers);
     state.primary = { ...parsed, rows: normalizedRows, nifIndex, name: file.name };
+    state.labelFields = labelFields;
     setStatus(csvPrimaryStatus, `Archivo cargado: ${file.name}`, true);
     primaryData.hidden = false;
     primaryCount.textContent = `${parsed.rows.length} filas`;
@@ -434,31 +491,47 @@ csvSecondaryInput.addEventListener("change", async (event) => {
     renderTable(mismatchesTable, parsed.headers, mismatches, { limit: 50 });
 
     generateWordBtn.disabled = matches.length === 0;
+    generateMergeBtn.disabled = matches.length === 0;
     downloadPreviewBtn.disabled = matches.length === 0;
   } catch (error) {
     setStatus(csvSecondaryStatus, error.message, false);
     matchSummary.hidden = true;
     matchResults.hidden = true;
     generateWordBtn.disabled = true;
+    generateMergeBtn.disabled = true;
     downloadPreviewBtn.disabled = true;
   }
 });
 
 downloadPreviewBtn.addEventListener("click", () => {
   if (!state.labelRows.length) return;
-  labelsPreview.innerHTML = buildLabelHTML(state.primary.headers, state.labelRows);
+  labelsPreview.innerHTML = buildLabelHTML(state.labelRows, state.labelFields);
   previewSection.hidden = false;
   previewSection.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 generateWordBtn.addEventListener("click", () => {
   if (!state.labelRows.length) return;
-  const html = buildWordDocument(state.primary.headers, state.labelRows);
+  const html = buildWordDocument(state.labelRows, state.labelFields);
   const blob = new Blob([html], { type: "application/msword" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "etiquetas-alumnos.doc";
+  link.download = "etiquetas-alumnos.docx";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+});
+
+generateMergeBtn.addEventListener("click", () => {
+  if (!state.labelRows.length) return;
+  const csv = buildMergeCSV(state.labelRows, state.labelFields);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "apli-01273-combinar.csv";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

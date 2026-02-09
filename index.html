@@ -16,7 +16,7 @@
             Carga el CSV de alumnos, revisa los datos y genera etiquetas filtradas por NIF con un segundo CSV.
           </p>
         </div>
-        <div class="version">Versión <span id="appVersion">0.3.0</span></div>
+        <div class="version">Versión <span id="appVersion">0.4.0</span></div>
       </header>
 
       <section class="card" aria-labelledby="step-1">
@@ -54,7 +54,8 @@
           <div>
             <h2 id="step-2">Generar etiquetas</h2>
             <p>
-              Abre el modal, carga el segundo CSV/XLSX con NIF y confirma las coincidencias antes de generar el Word.
+              Abre el modal, carga el segundo CSV/XLSX con NIF y confirma las coincidencias antes de generar las etiquetas
+              en Word o el archivo para combinar correspondencia (APLI 01273).
             </p>
           </div>
         </div>
@@ -69,7 +70,7 @@
         <header class="modal-header">
           <div>
             <p class="eyebrow">Paso final</p>
-            <h2 id="modal-title">Cruce de NIF y generación de Word</h2>
+            <h2 id="modal-title">Cruce de NIF y generación de etiquetas</h2>
           </div>
           <button class="icon" id="closeModal" aria-label="Cerrar">×</button>
         </header>
@@ -93,7 +94,8 @@
               </div>
             </div>
             <div class="modal-actions">
-              <button class="secondary" id="generateWord" disabled>Generar Word</button>
+              <button class="secondary" id="generateWord" disabled>Descargar Word (tabla)</button>
+              <button class="secondary outline" id="generateMerge" disabled>Descargar APLI 01273 (combinar)</button>
               <button class="ghost" id="downloadPreview" disabled>Previsualizar etiquetas</button>
             </div>
           </div>
