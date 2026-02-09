@@ -31,3 +31,8 @@
 - Ajustado el HTML generado para Word con márgenes, tamaños y centrado alineados al formato del DOCX de referencia.
 - Añadidos párrafos de línea en etiquetas con separación y negrita del nombre para mantener la alineación.
 - Actualizada la versión visible de la app.
+
+## 0.4.3
+- Ajustado el HTML de etiquetas para respetar márgenes, alto de fila, ancho de columnas y sangrías del DOCX de referencia.
+- Añadido botón para exportar a PDF con la misma maqueta de impresión que el Word.
+- Actualizada la versión visible de la app.

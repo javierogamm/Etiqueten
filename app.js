@@ -16,6 +16,7 @@ const mismatchesTable = document.getElementById("mismatchesTable");
 const matchResults = document.getElementById("matchResults");
 const generateWordBtn = document.getElementById("generateWord");
 const generateMergeBtn = document.getElementById("generateMerge");
+const generatePdfBtn = document.getElementById("generatePdf");
 const downloadPreviewBtn = document.getElementById("downloadPreview");
 const previewSection = document.getElementById("previewSection");
 const labelsPreview = document.getElementById("labelsPreview");
@@ -29,7 +30,7 @@ const state = {
   labelFields: null,
 };
 
-const appVersion = "0.4.2";
+const appVersion = "0.4.3";
 const versionLabel = document.getElementById("appVersion");
 if (versionLabel) {
   versionLabel.textContent = appVersion;
@@ -232,6 +233,7 @@ const resetModalState = () => {
   previewSection.hidden = true;
   generateWordBtn.disabled = true;
   generateMergeBtn.disabled = true;
+  generatePdfBtn.disabled = true;
   downloadPreviewBtn.disabled = true;
   matchesTable.innerHTML = "";
   mismatchesTable.innerHTML = "";
@@ -318,16 +320,10 @@ const buildLabelHTML = (rows, fields) => {
   `;
 };
 
-const buildWordDocument = (rows, fields) => {
+const buildLabelTable = (rows, fields) => {
   const columns = 3;
   const rowsPerPage = 8;
   const labelsPerPage = columns * rowsPerPage;
-  const pages = [];
-
-  for (let i = 0; i < rows.length; i += labelsPerPage) {
-    const pageRows = rows.slice(i, i + labelsPerPage);
-    pages.push(pageRows);
-  }
 
   const buildTable = (pageRows) => {
     const cells = Array.from({ length: labelsPerPage }).map((_, index) => pageRows[index]);
@@ -363,27 +359,57 @@ const buildWordDocument = (rows, fields) => {
       });
       return `<tr>${cols.join("")}</tr>`;
     });
-    return `<table class="labels-table">${tableRows.join("")}</table>`;
+    return `
+      <table class="labels-table">
+        <colgroup>
+          <col style="width: 6.49cm;">
+          <col style="width: 7.01cm;">
+          <col style="width: 6.75cm;">
+        </colgroup>
+        ${tableRows.join("")}
+      </table>
+    `;
   };
 
+  const pages = [];
+
+  for (let i = 0; i < rows.length; i += labelsPerPage) {
+    const pageRows = rows.slice(i, i + labelsPerPage);
+    pages.push(pageRows);
+  }
+
+  const tables = pages
+    .map((pageRows, index) => {
+      const table = buildTable(pageRows);
+      if (index === pages.length - 1) {
+        return table;
+      }
+      return `<div class="page-break">${table}</div>`;
+    })
+    .join("");
+
+  return tables;
+};
+
+const buildWordDocument = (rows, fields) => {
+  const tables = buildLabelTable(rows, fields);
   return `
   <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
     <head>
       <meta charset="utf-8">
       <title>Etiquetas alumnos</title>
       <style>
-        @page { size: 595.3pt 841.9pt; margin: 70.85pt 3.0cm; }
+        @page { size: 21.0cm 29.7cm; margin: 1.0cm 3.0cm 0.45cm; }
         body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; }
         .labels-table {
           border-collapse: collapse;
-          width: 21.0cm;
           table-layout: fixed;
-          margin: 0 auto;
+          width: 20.25cm;
+          margin-left: -2.5cm;
         }
         .labels-table td {
-          width: 7.0cm;
-          height: 104.9pt;
-          padding: 8.5pt;
+          height: 94.95pt;
+          padding: 0 5.4pt;
           vertical-align: top;
           text-align: center;
           overflow: hidden;
@@ -400,15 +426,50 @@ const buildWordDocument = (rows, fields) => {
       </style>
     </head>
     <body>
-      ${pages
-        .map((pageRows, index) => {
-          const table = buildTable(pageRows);
-          if (index === pages.length - 1) {
-            return table;
-          }
-          return `<div class="page-break">${table}</div>`;
-        })
-        .join("")}
+      ${tables}
+    </body>
+  </html>
+  `;
+};
+
+const buildPdfDocument = (rows, fields) => {
+  const tables = buildLabelTable(rows, fields);
+  return `
+  <!doctype html>
+  <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <title>Etiquetas alumnos</title>
+      <style>
+        @page { size: 21.0cm 29.7cm; margin: 1.0cm 3.0cm 0.45cm; }
+        html, body { margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 10pt; }
+        .labels-table {
+          border-collapse: collapse;
+          table-layout: fixed;
+          width: 20.25cm;
+          margin-left: -2.5cm;
+        }
+        .labels-table td {
+          height: 94.95pt;
+          padding: 0 5.4pt;
+          vertical-align: top;
+          text-align: center;
+          overflow: hidden;
+        }
+        .cell-line {
+          margin: 0;
+          line-height: 12.0pt;
+          font-size: 10.0pt;
+          font-family: Arial, sans-serif;
+          word-break: break-word;
+        }
+        .cell-line.bold { font-weight: 700; }
+        .page-break { page-break-after: always; }
+      </style>
+    </head>
+    <body>
+      ${tables}
     </body>
   </html>
   `;
@@ -546,6 +607,7 @@ csvSecondaryInput.addEventListener("change", async (event) => {
 
     generateWordBtn.disabled = matches.length === 0;
     generateMergeBtn.disabled = matches.length === 0;
+    generatePdfBtn.disabled = matches.length === 0;
     downloadPreviewBtn.disabled = matches.length === 0;
   } catch (error) {
     setStatus(csvSecondaryStatus, error.message, false);
@@ -553,6 +615,7 @@ csvSecondaryInput.addEventListener("change", async (event) => {
     matchResults.hidden = true;
     generateWordBtn.disabled = true;
     generateMergeBtn.disabled = true;
+    generatePdfBtn.disabled = true;
     downloadPreviewBtn.disabled = true;
   }
 });
@@ -590,4 +653,18 @@ generateMergeBtn.addEventListener("click", () => {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+});
+
+generatePdfBtn.addEventListener("click", () => {
+  if (!state.labelRows.length) return;
+  const html = buildPdfDocument(state.labelRows, state.labelFields);
+  const pdfWindow = window.open("", "_blank");
+  if (!pdfWindow) return;
+  pdfWindow.onload = () => {
+    pdfWindow.print();
+    pdfWindow.onafterprint = () => pdfWindow.close();
+  };
+  pdfWindow.document.write(html);
+  pdfWindow.document.close();
+  pdfWindow.focus();
 });
